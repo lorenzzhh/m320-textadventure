@@ -15,6 +15,7 @@ public class StoryTeller {
     private final StoryReader.Game game;
     private String currentRoom;
     private final Set<String> states;
+    private int countSteps = 0;
 
     public StoryTeller(Console console, StoryReader.Game game) {
         this.console = console;
@@ -30,12 +31,25 @@ public class StoryTeller {
             StoryReader.Game.Room room = game.rooms().get(currentRoom);
             console.writeLine("You are in " + room.name() + ": " + room.description());
 
+
+            if (room.name().equals("A hidden room")) {
+                console.writeLine(ANSI_GREEN + "You Made It in " + countSteps + " steps." + ANSI_RESET);
+                console.writeLine(ANSI_GREEN + "Type 'quit' to exit or 'restart' for a new Game!" + ANSI_RESET);
+            }
+
             console.writeLine("What would you like to do?");
             String input = console.readLine().toLowerCase();
+
+            countSteps++;
 
             if (input.equals("quit") || input.equals("exit")) {
                 console.writeLine("Thank you for playing! Good bye!");
                 System.exit(0);
+            }
+
+            if (input.equals("restart")) {
+                Main main = new Main();
+                main.startGame();
             }
 
             String[] parts = input.split(" ");
