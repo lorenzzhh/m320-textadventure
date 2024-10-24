@@ -26,45 +26,43 @@ public class StoryTeller {
     public void start() {
         console.writeLine("Welcome to the tutorial...");
 
-        boolean running = true;
-        while (running) {
-            // Informationen über den aktuellen Raum ausgeben
+        while (true) {
             StoryReader.Game.Room room = game.rooms().get(currentRoom);
             console.writeLine("You are in " + room.name() + ": " + room.description());
 
-            // Eingabe des Spielers abfragen
             console.writeLine("What would you like to do?");
             String input = console.readLine().toLowerCase();
 
-            if (input.equals("quit")) {
-                System.out.println("Thank you for playing! Good bye!");
-                running = false;
+            if (input.equals("quit") || input.equals("exit")) {
+                console.writeLine("Thank you for playing! Good bye!");
+                System.exit(0);
             }
-
 
             String[] parts = input.split(" ");
 
-            String verbKey = parts[0];
+            String verbKey = findVerb(parts[0]);
+            if (verbKey == null) {
+                console.writeLine(ANSI_RED + "Unknown command: " + parts[0] + ANSI_RESET);
+                continue;
+            }
+
             String object = null;
             if (parts.length > 1) {
                 object = parts[1];
             }
 
-            // Überprüfen, ob das Verb im Raum vorhanden ist
             Map<String, List<StoryReader.Game.Action>> actionsForVerb = room.verbs().get(verbKey);
             if (actionsForVerb == null) {
                 handleUnknownCommand(verbKey);
                 continue;
             }
 
-            // Überprüfen, ob das Objekt vorhanden ist
             List<StoryReader.Game.Action> actions = actionsForVerb.get(object);
             if (actions == null || actions.isEmpty()) {
                 handleUnknownObject(verbKey, object);
                 continue;
             }
 
-            // Führe die erste passende Aktion aus (ggf. mit ifState-Check)
             StoryReader.Game.Action action = findValidAction(actions);
             if (action != null) {
                 processAction(action);
@@ -74,7 +72,6 @@ public class StoryTeller {
         }
     }
 
-    // Methode zur Verarbeitung einer Aktion
     private void processAction(StoryReader.Game.Action action) {
         if (action.message() != null) {
             console.writeLine(action.message());
@@ -83,20 +80,31 @@ public class StoryTeller {
             currentRoom = action.room();
         }
         if (action.addState() != null) {
-            // Zustand hinzufügen
             states.add(action.addState());
             console.writeLine(ANSI_GREEN + "State '" + action.addState() + "' has been added." + ANSI_RESET);
         }
     }
 
-    // Methode zur Suche nach einer gültigen Aktion basierend auf dem ifState
+    private String findVerb(String inputVerb) {
+        if (game.verbs().containsKey(inputVerb)) {
+            return inputVerb;
+        }
+        for (Map.Entry<String, StoryReader.Game.Verb> entry : game.verbs().entrySet()) {
+            StoryReader.Game.Verb verb = entry.getValue();
+            if (verb.synonyms() != null && verb.synonyms().contains(inputVerb)) {
+                return entry.getKey();  // Gib das Hauptverb zurück
+            }
+        }
+        return null;
+    }
+
     private StoryReader.Game.Action findValidAction(List<StoryReader.Game.Action> actions) {
         for (StoryReader.Game.Action action : actions) {
             if (action.ifState() == null || states.contains(action.ifState())) {
                 return action;  // Gültige Aktion gefunden
             }
         }
-        return null;  // Keine passende Aktion gefunden
+        return null;
     }
 
     private void handleUnknownCommand(String verb) {
